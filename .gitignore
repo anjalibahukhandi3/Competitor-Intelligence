@@ -145,3 +145,12 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Celery
+celerybeat-schedule*
+
+# Generated reports
+storage/reports/*.pdf
+
+# Environment
+.env
