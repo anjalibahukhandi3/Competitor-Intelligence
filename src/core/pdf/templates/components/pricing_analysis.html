@@ -1,0 +1,47 @@
+<div class="section-container">
+    <h2>3. Pricing Strategy &amp; Plan Tiers</h2>
+    <p>{{ pricing_analysis or "Pricing analysis details not available." }}</p>
+
+    {% if pricing and pricing.tiers %}
+    <div style="margin-top: 10px; margin-bottom: 10px;">
+        <span class="badge badge-neutral">Model: {{ pricing.pricing_model or 'Subscription' }}</span>
+        {% if pricing.has_free_tier %}
+        <span class="badge badge-positive">Free Tier Available</span>
+        {% endif %}
+        {% if pricing.has_enterprise_tier %}
+        <span class="badge badge-neutral">Enterprise Plan Offered</span>
+        {% endif %}
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Tier Name</th>
+                <th>Price</th>
+                <th>Cycle</th>
+                <th>Key Features</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tier in pricing.tiers %}
+            <tr>
+                <td><strong>{{ tier.tier_name }}</strong></td>
+                <td>{{ tier.price }}</td>
+                <td>{{ tier.billing_cycle }}</td>
+                <td>
+                    {% if tier.key_features %}
+                    <ul style="padding-left: 14px;">
+                        {% for feat in tier.key_features %}
+                        <li>{{ feat }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>

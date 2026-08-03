@@ -1,0 +1,45 @@
+<div class="section-container">
+    <h2>6. Hiring &amp; Talent Acquisition Trends</h2>
+    {% if hiring %}
+    <div style="margin-bottom: 12px;">
+        <span class="badge badge-{{ hiring.growth_signal or 'stable' }}">
+            Trajectory: {{ hiring.growth_signal or 'Stable' }}
+        </span>
+        <span class="badge badge-neutral" style="margin-left: 6px;">
+            Active Roles Open: {{ hiring.total_open_roles or 0 }}
+        </span>
+    </div>
+
+    {% if hiring.top_departments %}
+    <p><strong>Top Hiring Departments:</strong> {{ hiring.top_departments | join(', ') }}</p>
+    {% endif %}
+
+    {% if hiring.postings %}
+    <h3>Sample Active Postings</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Job Title</th>
+                <th>Department</th>
+                <th>Location</th>
+                <th>Inferred Skills</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in hiring.postings %}
+            <tr>
+                <td><strong>{{ job.title }}</strong></td>
+                <td>{{ job.department }}</td>
+                <td>{{ job.location }}</td>
+                <td>{{ job.inferred_skills | join(', ') if job.inferred_skills else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No individual job postings tracked.</p>
+    {% endif %}
+    {% else %}
+    <p>Hiring trend data not available.</p>
+    {% endif %}
+</div>

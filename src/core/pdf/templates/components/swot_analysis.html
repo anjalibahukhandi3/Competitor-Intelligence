@@ -1,0 +1,65 @@
+<div class="section-container">
+    <h2>7. SWOT Analysis</h2>
+    <div class="swot-grid">
+        <div class="swot-row">
+            <div class="swot-cell">
+                <div class="swot-box swot-strengths">
+                    <h4>Strengths</h4>
+                    <ul>
+                        {% if swot.strengths %}
+                        {% for item in swot.strengths %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                        {% else %}
+                        <li>{{ strengths or "Internal competitive strengths identified by AI analysis." }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="swot-cell">
+                <div class="swot-box swot-weaknesses">
+                    <h4>Weaknesses</h4>
+                    <ul>
+                        {% if swot.weaknesses %}
+                        {% for item in swot.weaknesses %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                        {% else %}
+                        <li>{{ weaknesses or "Internal competitive weaknesses identified by AI analysis." }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="swot-row">
+            <div class="swot-cell">
+                <div class="swot-box swot-opportunities">
+                    <h4>Opportunities</h4>
+                    <ul>
+                        {% if swot.opportunities %}
+                        {% for item in swot.opportunities %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                        {% else %}
+                        <li>{{ opportunities or "External market opportunities identified by AI analysis." }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="swot-cell">
+                <div class="swot-box swot-threats">
+                    <h4>Threats</h4>
+                    <ul>
+                        {% if swot.threats %}
+                        {% for item in swot.threats %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                        {% else %}
+                        <li>{{ threats or "External competitive threats identified by AI analysis." }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

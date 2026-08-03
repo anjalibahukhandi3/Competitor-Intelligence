@@ -1,0 +1,32 @@
+<div class="section-container">
+    <h2>5. News &amp; Public Coverage Summary</h2>
+    {% if news %}
+    <div style="margin-bottom: 10px;">
+        <span class="badge badge-{{ news.overall_sentiment or 'neutral' }}">
+            Overall Sentiment: {{ news.overall_sentiment or 'Neutral' }}
+        </span>
+    </div>
+    {% if news.key_themes %}
+    <p><strong>Key Coverage Themes:</strong> {{ news.key_themes | join(', ') }}</p>
+    {% endif %}
+
+    {% if news.news_items %}
+    {% for item in news.news_items %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span class="card-title">{{ item.headline }}</span>
+            <span class="badge badge-{{ item.sentiment or 'neutral' }}">{{ item.sentiment or 'neutral' }}</span>
+        </div>
+        <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 4px;">
+            Source: {{ item.source }} {% if item.published_at %}| Date: {{ item.published_at }}{% endif %}
+        </div>
+        <p style="font-size: 9pt; margin-bottom: 0;">{{ item.summary }}</p>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>No recent news coverage items tracked.</p>
+    {% endif %}
+    {% else %}
+    <p>No news coverage data collected.</p>
+    {% endif %}
+</div>

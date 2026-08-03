@@ -1,0 +1,46 @@
+<div class="section-container">
+    <h2>2. Competitor Overview &amp; Market Position</h2>
+    <p>{{ market_position or "Market position analysis not available." }}</p>
+    
+    <div class="meta-grid" style="margin-top: 14px;">
+        <div class="meta-col">
+            <div class="card">
+                <div class="card-title">Target Customers</div>
+                {% if research and research.target_customers %}
+                <ul>
+                    {% for customer in research.target_customers %}
+                    <li>{{ customer }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>Primary target customer segments identified in digital footprint.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="meta-col">
+            <div class="card">
+                <div class="card-title">Primary Use Cases</div>
+                {% if research and research.primary_use_cases %}
+                <ul>
+                    {% for uc in research.primary_use_cases %}
+                    <li>{{ uc }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>Core application use cases highlighted by company messaging.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if research and research.key_differentiators %}
+    <div class="card">
+        <div class="card-title">Key Differentiators</div>
+        <ul>
+            {% for diff in research.key_differentiators %}
+            <li>{{ diff }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>

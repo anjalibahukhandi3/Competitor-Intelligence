@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Competitor Intelligence Report - {{ competitor_name }}</title>
+    <style>
+        {{ css_content | safe }}
+    </style>
+</head>
+<body>
+    {% include 'components/cover.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/executive_summary.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/competitor_overview.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/pricing_analysis.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/feature_comparison.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/news_summary.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/hiring_trends.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/swot_analysis.html' %}
+    
+    <div class="page-break"></div>
+    {% include 'components/recommendations.html' %}
+
+    {% include 'components/footer.html' %}
+</body>
+</html>

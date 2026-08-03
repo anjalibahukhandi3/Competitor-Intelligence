@@ -1,0 +1,15 @@
+<div class="section-container">
+    <h2>1. Executive Summary</h2>
+    <div class="callout-box">
+        <div class="callout-title">Strategic Overview</div>
+        <p>{{ summary or "No executive summary available." }}</p>
+    </div>
+    {% if key_takeaways %}
+    <h3>Key Takeaways</h3>
+    <ul>
+        {% for takeaway in key_takeaways %}
+        <li style="margin-bottom: 6px; color: #334155;"><strong>{{ takeaway.title }}:</strong> {{ takeaway.description }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>

@@ -1,0 +1,25 @@
+<div class="section-container">
+    <h2>4. Feature Comparison &amp; Product Capability</h2>
+    <p>{{ feature_analysis or "Feature comparison analysis not available." }}</p>
+
+    {% if feature_points %}
+    <table class="data-table" style="margin-top: 12px;">
+        <thead>
+            <tr>
+                <th>Feature / Capability</th>
+                <th>Competitor Offering</th>
+                <th>Market Impact</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in feature_points %}
+            <tr>
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.offering }}</td>
+                <td>{{ item.impact }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>

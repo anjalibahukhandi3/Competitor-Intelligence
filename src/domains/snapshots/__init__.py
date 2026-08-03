@@ -1,0 +1,1 @@
+"""Snapshots domain — package init."""

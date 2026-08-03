@@ -1,0 +1,1 @@
+# Competitors Subdomain package

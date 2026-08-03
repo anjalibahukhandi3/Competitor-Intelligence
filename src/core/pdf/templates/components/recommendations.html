@@ -1,0 +1,26 @@
+<div class="section-container">
+    <h2>8. Strategic Recommendations</h2>
+    <p>Based on comprehensive analysis of market positioning, pricing tiers, feature set, and hiring patterns, the following strategic actions are recommended:</p>
+    
+    {% if recommendations %}
+    {% for rec in recommendations %}
+    <div class="rec-item">
+        <span class="rec-number">0{{ loop.index }}</span>
+        <strong>{{ rec.title }}:</strong> {{ rec.description }}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="rec-item">
+        <span class="rec-number">01</span>
+        <strong>Value Proposition Positioning:</strong> Emphasize superior speed and automated workflows against {{ competitor_name }}'s offering.
+    </div>
+    <div class="rec-item">
+        <span class="rec-number">02</span>
+        <strong>Pricing Strategy Alignment:</strong> Introduce flexible usage-based options to target mid-market accounts priced out by {{ competitor_name }}'s tiers.
+    </div>
+    <div class="rec-item">
+        <span class="rec-number">03</span>
+        <strong>Feature Parity Acceleration:</strong> Prioritize top feature requests identified in market comparison to close competitive gaps.
+    </div>
+    {% endif %}
+</div>
