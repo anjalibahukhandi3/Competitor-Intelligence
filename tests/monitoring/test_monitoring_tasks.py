@@ -15,6 +15,22 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
+def _fake_task_engine(mock_session: AsyncMock) -> tuple[MagicMock, MagicMock]:
+    """Builds a (fake_engine, fake_session_maker) pair matching the shape of
+    ``src.database.create_task_engine()``'s return value, for patching
+    ``src.jobs.tasks.create_task_engine`` in tests.
+    """
+    fake_engine = MagicMock()
+    fake_engine.dispose = AsyncMock()
+
+    mock_ctx = AsyncMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    fake_session_maker = MagicMock(return_value=mock_ctx)
+    return fake_engine, fake_session_maker
+
+
 class TestTriggerMonitoringPolling:
     """Tests for trigger_monitoring_polling task."""
 
@@ -74,17 +90,16 @@ class TestRunMonitoringPipelineAsync:
         fake_snapshot_service = MagicMock()
         fake_snapshot_service.take_snapshot = AsyncMock(return_value=(fake_snapshot, False))
 
-        with patch("src.jobs.tasks.async_session_maker") as mock_session_maker, \
+        mock_session = AsyncMock()
+        fake_engine, fake_session_maker = _fake_task_engine(mock_session)
+
+        with patch("src.jobs.tasks.create_task_engine", return_value=(fake_engine, fake_session_maker)), \
              patch("src.domains.snapshots.services.SnapshotService", return_value=fake_snapshot_service), \
              patch("src.domains.snapshots.services.ChangeDetector"):
-            mock_session = AsyncMock()
-            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-            mock_session.__aexit__ = AsyncMock(return_value=False)
-            mock_session_maker.return_value = mock_session
-
             result = await _run_monitoring_pipeline("comp-001")
 
         assert result.get("skipped") is True
+        fake_engine.dispose.assert_awaited_once()
 
     async def test_pipeline_creates_change_events_for_new_snapshot(self) -> None:
         """_run_monitoring_pipeline calls detect_and_record_changes when previous snapshot exists."""
@@ -102,17 +117,16 @@ class TestRunMonitoringPipelineAsync:
         fake_change_detector = MagicMock()
         fake_change_detector.detect_and_record_changes = AsyncMock(return_value=[MagicMock(), MagicMock()])
 
-        with patch("src.jobs.tasks.async_session_maker") as mock_session_maker, \
+        mock_session = AsyncMock()
+        fake_engine, fake_session_maker = _fake_task_engine(mock_session)
+
+        with patch("src.jobs.tasks.create_task_engine", return_value=(fake_engine, fake_session_maker)), \
              patch("src.domains.snapshots.repositories.SnapshotRepository", return_value=fake_snapshot_repo), \
              patch("src.domains.snapshots.services.SnapshotService", return_value=fake_snapshot_service), \
              patch("src.domains.snapshots.services.ChangeDetector", return_value=fake_change_detector):
-
-            mock_session = AsyncMock()
-            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-            mock_session.__aexit__ = AsyncMock(return_value=False)
-            mock_session_maker.return_value = mock_session
 
             result = await _run_monitoring_pipeline("comp-001")
 
         assert result.get("change_count") == 2
         assert result.get("skipped") is False
+        fake_engine.dispose.assert_awaited_once()

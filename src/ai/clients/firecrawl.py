@@ -7,7 +7,7 @@ import time
 import httpx
 import structlog
 
-from src.ai.exceptions import FirecrawlException
+from src.ai.exceptions import AIConfigurationException, FirecrawlException
 from src.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -44,7 +44,7 @@ class FirecrawlClient:
 
         if not self._is_key_valid():
             log.warning("Firecrawl API key is missing or default placeholder")
-            raise FirecrawlException("Firecrawl API key is not configured.")
+            raise AIConfigurationException("Firecrawl API key is not configured.")
 
         endpoint = f"{self.BASE_URL}/scrape"
         headers = {

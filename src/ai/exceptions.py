@@ -16,3 +16,16 @@ class TavilyException(AIExecutionException):
 class GeminiException(AIExecutionException):
     """Raised when Google Gemini LLM generation or extraction fails."""
     pass
+
+
+class AIConfigurationException(AIExecutionException):
+    """Raised for permanent configuration problems (missing or placeholder API keys).
+
+    Unlike FirecrawlException / TavilyException / GeminiException — which can also
+    represent transient network or rate-limit failures worth retrying — this
+    exception means retrying will never succeed until a human fixes the
+    configuration. Celery's ``autoretry_for`` list (see ``src/jobs/tasks.py``)
+    deliberately excludes this type so a bad or missing API key fails fast instead
+    of burning through multiple 60-second retries.
+    """
+    pass

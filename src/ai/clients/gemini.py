@@ -22,7 +22,7 @@ import google.genai.types as genai_types
 from pydantic import BaseModel, ValidationError
 import structlog
 
-from src.ai.exceptions import GeminiException
+from src.ai.exceptions import AIConfigurationException, GeminiException
 from src.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -72,7 +72,7 @@ class GeminiClient:
 
         if not self._is_key_valid():
             log.warning("Gemini API key is missing or default placeholder")
-            raise GeminiException("Gemini API key is not configured.")
+            raise AIConfigurationException("Gemini API key is not configured.")
 
         client = genai.Client(api_key=self.api_key)
         start_time = time.perf_counter()
@@ -125,7 +125,7 @@ class GeminiClient:
 
         if not self._is_key_valid():
             log.warning("Gemini API key is missing or default placeholder")
-            raise GeminiException("Gemini API key is not configured.")
+            raise AIConfigurationException("Gemini API key is not configured.")
 
         schema_json = json.dumps(schema_class.model_json_schema(), indent=2)
 

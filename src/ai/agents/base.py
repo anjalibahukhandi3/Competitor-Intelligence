@@ -15,6 +15,7 @@ The orchestrator, Celery task, and tests are untouched in both cases.
 from __future__ import annotations
 
 import abc
+import re
 from typing import Generic, TypeVar
 
 import structlog
@@ -25,6 +26,19 @@ InputT = TypeVar("InputT", bound=AgentInput)
 OutputT = TypeVar("OutputT")
 
 logger = structlog.get_logger(__name__)
+
+_CAMEL_CASE_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+def _stage_slug(agent_name: str) -> str:
+    """Converts an agent's CamelCase name into a snake_case log-event slug.
+
+    e.g. ``"ResearchAgent"`` -> ``"research_agent"``, so pipeline logs read
+    as ``research_agent_started`` / ``research_agent_completed`` /
+    ``research_agent_failed`` for every agent without each one needing to
+    write its own logging boilerplate.
+    """
+    return _CAMEL_CASE_BOUNDARY.sub("_", agent_name).lower()
 
 
 class BaseAgent(abc.ABC, Generic[InputT, OutputT]):
@@ -48,13 +62,14 @@ class BaseAgent(abc.ABC, Generic[InputT, OutputT]):
             agent=self.agent_name,
             competitor_id=getattr(input, "competitor_id", None),
         )
-        log.info("Agent starting")
+        stage = _stage_slug(self.agent_name)
+        log.info(f"{stage}_started")
         try:
             result = await self._execute(input)
-            log.info("Agent completed successfully")
+            log.info(f"{stage}_completed")
             return result
         except Exception as exc:
-            log.error("Agent failed", error=str(exc))
+            log.error(f"{stage}_failed", error=str(exc))
             raise
 
     @abc.abstractmethod

@@ -96,7 +96,7 @@ class IntelligenceOrchestrator:
         RuntimeError
             If the associated competitor record is missing (data integrity issue).
         """
-        self._log.info("Orchestrator pipeline starting")
+        self._log.info("intelligence_orchestrator_started")
 
         # ----------------------------------------------------------------
         # Step 1: Load report + competitor

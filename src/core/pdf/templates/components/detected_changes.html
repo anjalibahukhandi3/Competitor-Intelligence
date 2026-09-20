@@ -1,0 +1,26 @@
+<div class="section-container">
+    <h2>7. Detected Changes</h2>
+    {% if changes %}
+    <p>The following changes were identified by continuous monitoring since the previous snapshot:</p>
+    {% for change in changes %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span class="card-title">{{ change.category }}</span>
+            <span class="badge badge-{{ 'negative' if change.impact_score == 'High' else ('positive' if change.impact_score == 'Low' else 'neutral') }}">{{ change.impact_score }} Impact</span>
+        </div>
+        <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 4px;">
+            Detected: {{ change.created_at }}
+        </div>
+        <p style="font-size: 9pt; margin-bottom: 0;">{{ change.summary }}</p>
+        {% if change.added_content %}
+        <p style="font-size: 8.5pt; color: #16a34a; margin-top: 4px;">+ {{ change.added_content }}</p>
+        {% endif %}
+        {% if change.removed_content %}
+        <p style="font-size: 8.5pt; color: #dc2626; margin-top: 2px;">- {{ change.removed_content }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>No changes have been detected by continuous monitoring since tracking began for this competitor.</p>
+    {% endif %}
+</div>

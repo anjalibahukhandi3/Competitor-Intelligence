@@ -1,6 +1,11 @@
 from typing import AsyncGenerator
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker,
+)
 from sqlalchemy.orm import declarative_base
 import structlog
 
@@ -62,6 +67,39 @@ async def verify_db_connection() -> None:
     except Exception as e:
         logger.critical("PostgreSQL database connection check failed", error=str(e))
         raise
+
+
+def create_task_engine() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    """Builds a new AsyncEngine + async_sessionmaker scoped to the CALLER's event loop.
+
+    FastAPI runs one long-lived event loop for the life of the process, so the
+    module-level `engine` / `async_session_maker` above are safe to share across every
+    request there. Celery workers are different: `src/jobs/tasks.py` drives each task
+    through its own `asyncio.run(...)` call, so a brand-new event loop is created and
+    destroyed per task. asyncpg binds its connections to the event loop that opened
+    them, so reusing the FastAPI process's pooled `engine` inside a Celery task
+    corrupts the pool the moment a *second* task runs on a *different* loop — this is
+    what previously surfaced as `RuntimeError: Event loop is closed` and
+    `AttributeError: 'NoneType' object has no attribute 'send'`.
+
+    Call this once per Celery task (after `asyncio.run` has already started the loop),
+    use the returned `async_sessionmaker` for all DB work in that task, then
+    `await engine.dispose()` before the task's coroutine returns — never keep the
+    engine alive past the event loop that created it. `NullPool` means every checkout
+    opens and closes its own asyncpg connection instead of pooling one across calls,
+    which is what makes create-and-throw-away-per-task safe.
+    """
+    task_engine = create_async_engine(
+        settings.db.url,
+        pool_pre_ping=True,
+        future=True,
+        echo=settings.debug,
+        poolclass=NullPool,
+    )
+    task_session_maker = async_sessionmaker(
+        task_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    return task_engine, task_session_maker
 
 # ---------------------------------------------------------------------------
 # SQLAlchemy Mapper Registration

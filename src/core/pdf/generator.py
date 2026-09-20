@@ -91,7 +91,7 @@ class PDFReportGenerator:
             return self._css_path.read_text(encoding="utf-8")
         return ""
 
-    def _extract_context(self, report: Report) -> dict[str, Any]:
+    def _extract_context(self, report: Report, changes: list[Any] | None = None) -> dict[str, Any]:
         """Extracts and formats template context variables from a Report model."""
         competitor_name = "Target Competitor"
         competitor_url = "N/A"
@@ -145,6 +145,25 @@ class PDFReportGenerator:
         pricing = _to_namespace(raw_data.get("pricing")) if raw_data.get("pricing") else None
         hiring = _to_namespace(raw_data.get("hiring")) if raw_data.get("hiring") else None
 
+        # Detected changes come from the existing snapshot/change-detection
+        # pipeline (ChangeEvent rows), passed in by the caller — this method
+        # only formats them for the template, it does not detect anything.
+        changes_list = [
+            SimpleNamespace(
+                category=getattr(change, "category", "General"),
+                summary=getattr(change, "summary", ""),
+                impact_score=getattr(change, "impact_score", None) or "Medium",
+                added_content=getattr(change, "added_content", None),
+                removed_content=getattr(change, "removed_content", None),
+                created_at=(
+                    change.created_at.strftime("%B %d, %Y")
+                    if isinstance(getattr(change, "created_at", None), datetime)
+                    else ""
+                ),
+            )
+            for change in (changes or [])
+        ]
+
         return {
             "report_id": report.id,
             "competitor_name": competitor_name,
@@ -163,6 +182,7 @@ class PDFReportGenerator:
             "news": news,
             "pricing": pricing,
             "hiring": hiring,
+            "changes": changes_list,
             "key_takeaways": [
                 SimpleNamespace(
                     title="Market Positioning",
@@ -204,11 +224,11 @@ class PDFReportGenerator:
             ],
         }
 
-    def generate_html(self, report: Report) -> str:
+    def generate_html(self, report: Report, changes: list[Any] | None = None) -> str:
         """Renders HTML string for the report using Jinja2 templates."""
         template = self.env.get_template("base.html")
         css_content = self._load_css()
-        context = self._extract_context(report)
+        context = self._extract_context(report, changes=changes)
         context["css_content"] = css_content
         return template.render(**context)
 
@@ -216,6 +236,7 @@ class PDFReportGenerator:
         self,
         report: Report,
         output_dir: Path | str | None = None,
+        changes: list[Any] | None = None,
     ) -> str:
         """Converts Report into a PDF file and returns the saved file path.
 
@@ -225,6 +246,10 @@ class PDFReportGenerator:
             The Report ORM object containing AI analysis results.
         output_dir:
             Directory where PDF report files are stored. Defaults to ``storage/reports``.
+        changes:
+            Optional list of ``ChangeEvent`` rows (or any object exposing the
+            same attributes) detected by the existing change-detection
+            pipeline, rendered as a "Detected Changes" section.
 
         Returns
         -------
@@ -237,7 +262,7 @@ class PDFReportGenerator:
         filename = f"report_{report.id}.pdf"
         file_path = out_dir / filename
 
-        html_content = self.generate_html(report)
+        html_content = self.generate_html(report, changes=changes)
 
         # Lazy import — allows test patching of ``src.core.pdf.generator.HTML``
         # and avoids crashing the module on environments without GTK C-libraries.

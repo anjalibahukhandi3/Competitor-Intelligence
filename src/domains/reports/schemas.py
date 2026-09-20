@@ -97,6 +97,10 @@ class ReportResponse(BaseModel):
         default=None,
         description="File path to the generated PDF report",
     )
+    email_status: Optional[str] = Field(
+        default=None,
+        description="Email delivery status for this report: pending | sent | failed",
+    )
 
     # ------------------------------------------------------------------
     # Audit

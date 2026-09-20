@@ -19,6 +19,14 @@ REPORT_STATUS_PROCESSING = "processing"
 REPORT_STATUS_COMPLETED = "completed"
 REPORT_STATUS_FAILED = "failed"
 
+# Valid states for the (independent) email-delivery side-effect of a report.
+# A report can be REPORT_STATUS_COMPLETED with email_status still "pending"
+# (delivery hasn't been attempted yet) or "failed" (delivery failed) — the
+# report and its PDF are never invalidated by an email failure.
+REPORT_EMAIL_STATUS_PENDING = "pending"
+REPORT_EMAIL_STATUS_SENT = "sent"
+REPORT_EMAIL_STATUS_FAILED = "failed"
+
 
 class Report(Base):
     """ORM model representing the `reports` table in PostgreSQL.
@@ -137,6 +145,19 @@ class Report(Base):
         String(500),
         nullable=True,
         comment="File path to generated PDF report",
+    )
+
+    # ------------------------------------------------------------------
+    # Email delivery status — independent of the pipeline `status` above.
+    # A "failed" email never changes `status` away from "completed"; the
+    # report and its PDF remain valid even if delivery never succeeds.
+    # ------------------------------------------------------------------
+    email_status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default=REPORT_EMAIL_STATUS_PENDING,
+        server_default=REPORT_EMAIL_STATUS_PENDING,
+        comment="Email delivery status: pending | sent | failed",
     )
 
     # ------------------------------------------------------------------

@@ -7,7 +7,7 @@ import time
 import httpx
 import structlog
 
-from src.ai.exceptions import TavilyException
+from src.ai.exceptions import AIConfigurationException, TavilyException
 from src.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -54,7 +54,7 @@ class TavilyClient:
 
         if not self._is_key_valid():
             log.warning("Tavily API key is missing or default placeholder")
-            raise TavilyException("Tavily API key is not configured.")
+            raise AIConfigurationException("Tavily API key is not configured.")
 
         payload = {
             "api_key": self.api_key,

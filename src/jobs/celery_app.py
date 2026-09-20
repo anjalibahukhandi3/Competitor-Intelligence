@@ -34,6 +34,8 @@ Design decisions
     on start-up without requiring manual registration.
 """
 
+from datetime import timedelta
+
 from celery import Celery
 from celery.schedules import crontab
 
@@ -75,6 +77,16 @@ celery_app.conf.update(
         "daily-competitor-monitoring": {
             "task": "tasks.trigger_monitoring_polling",
             "schedule": crontab(hour=2, minute=0),  # every day at 02:00 UTC
+            "options": {"expires": 3600},           # discard if not consumed within 1 h
+        },
+        # Weekly intelligence report + email delivery, every 7 days.
+        # Generates a fresh report (agents -> SWOT -> PDF) for every active
+        # competitor and emails the PDF to that competitor's owner — reuses
+        # the exact same generate_report_task pipeline triggered manually via
+        # POST /reports/trigger/{competitor_id}.
+        "weekly-report-email-delivery": {
+            "task": "tasks.trigger_weekly_report_emails",
+            "schedule": timedelta(days=7),
             "options": {"expires": 3600},           # discard if not consumed within 1 h
         },
     },

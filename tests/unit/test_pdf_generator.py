@@ -110,6 +110,40 @@ def test_pdf_generator_html_rendering(sample_report: Report) -> None:
     assert "Pro" in html or "$49/mo" in html
 
 
+def test_pdf_generator_renders_detected_changes_section(sample_report: Report) -> None:
+    """Tests that ChangeEvent-like objects passed as `changes` render into a
+    'Detected Changes' section with category, summary, and impact badge.
+    """
+    from datetime import datetime, timezone
+
+    fake_change = MagicMock()
+    fake_change.category = "Pricing"
+    fake_change.summary = "Pro tier price increased from $29 to $39/mo."
+    fake_change.impact_score = "High"
+    fake_change.added_content = "New $39/mo Pro tier"
+    fake_change.removed_content = "Old $29/mo Pro tier"
+    fake_change.created_at = datetime(2026, 9, 1, tzinfo=timezone.utc)
+
+    generator = PDFReportGenerator()
+    html = generator.generate_html(sample_report, changes=[fake_change])
+
+    assert "Detected Changes" in html
+    assert "Pricing" in html
+    assert "Pro tier price increased" in html
+    assert "High Impact" in html
+
+
+def test_pdf_generator_detected_changes_section_empty_state(sample_report: Report) -> None:
+    """With no changes passed, the section must render a clear empty-state
+    message rather than an empty or broken section.
+    """
+    generator = PDFReportGenerator()
+    html = generator.generate_html(sample_report, changes=None)
+
+    assert "Detected Changes" in html
+    assert "No changes have been detected" in html
+
+
 def test_pdf_generator_pdf_creation(sample_report: Report, tmp_path: Path) -> None:
     """Tests that generate_pdf writes a PDF file to the specified output directory."""
     generator = PDFReportGenerator()
