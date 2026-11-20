@@ -150,14 +150,11 @@ export const reportsApi = {
     api.get(`/reports/${competitorId}/list`, { params: { page, size } }),
   download: (reportId) =>
     api.get(`/reports/${reportId}/download`, { responseType: 'blob' }),
-  updateStatus: (reportId, status) =>
-    api.patch(`/reports/${reportId}/status`, { status }),
 }
 
 // ─────────────────────────────────────────────
 // Monitoring API
 // Backend routes (monitoring.py):
-//   PUT  /monitoring/{competitor_id}/frequency
 //   POST /monitoring/{competitor_id}/trigger
 // Backend routes (snapshots/routes.py):
 //   POST /monitor/run
@@ -167,7 +164,7 @@ export const reportsApi = {
 // ─────────────────────────────────────────────
 
 export const monitoringApi = {
-  /** Trigger a manual monitoring run for one or all competitors */
+  /** Trigger a manual monitoring run for one or all of the caller's competitors */
   runMonitoring: (competitorIds = null) =>
     api.post('/monitor/run', { competitor_ids: competitorIds }),
 
@@ -175,18 +172,12 @@ export const monitoringApi = {
   getTimeline: (competitorId, limit = 50) =>
     api.get(`/competitors/${competitorId}/timeline`, { params: { limit } }),
 
-  /** List recent change events across all competitors */
+  /** List recent change events for the caller's competitors */
   getChanges: (limit = 50, category = null, impact = null) =>
     api.get('/changes', { params: { limit, category, impact } }),
 
   /** Get a specific snapshot */
   getSnapshot: (snapshotId) => api.get(`/snapshots/${snapshotId}`),
-
-  /** Update monitoring frequency for a competitor */
-  updateFrequency: (competitorId, frequency) =>
-    api.put(`/monitoring/${competitorId}/frequency`, null, {
-      params: { frequency },
-    }),
 
   /** Trigger manual monitoring for a single competitor */
   triggerForCompetitor: (competitorId) =>

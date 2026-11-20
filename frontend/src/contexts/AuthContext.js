@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
     }
     const payload = parseJWT(token) // returns null on any error
     setIsAuthenticated(true)
-    setTokenPayload(payload) // { sub: email, exp: ... }
+    setTokenPayload(payload) // { sub: user ID, email, exp, ... }
   }, [])
 
   // ── On mount: read token from localStorage / cookie ──────────────────────
@@ -88,10 +88,10 @@ export function AuthProvider({ children }) {
   }
 
   // ── Expose a safe "user" shape so existing JSX like user?.email still works.
-  // We derive email from the JWT `sub` claim (FastAPI sets sub=email by default).
+  // The backend includes an email claim for display; `sub` is the user ID.
   const user = isAuthenticated && tokenPayload
     ? {
-        email: tokenPayload.sub ?? null,
+        email: tokenPayload.email ?? null,
         // first_name / last_name are not in the token — keep as null
         first_name: null,
         last_name: null,

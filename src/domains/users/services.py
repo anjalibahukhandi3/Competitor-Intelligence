@@ -36,7 +36,7 @@ class UserService:
         if not user.is_active:
             raise ValueError("User account is inactive")
 
-        return create_access_token(user.id)
+        return create_access_token(user.id, email=user.email)
 
     async def get_user(self, user_id: str) -> User:
         """Retrieves user profile by ID or raises an error if not found."""

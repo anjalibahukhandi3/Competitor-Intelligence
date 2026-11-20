@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
 # Instantiate FastAPI Core App
 app = FastAPI(
     title=settings.project_name,
-    description="Continuous competitor tracking and intelligence platform using PydanticAI",
+    description="Competitor monitoring platform with snapshot and AI-assisted change analysis",
     version="0.1.0",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -67,11 +67,25 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Configure CORS Middlewares
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Real implementation should restrict this in production
+    allow_origins=[origin.strip() for origin in settings.cors_allowed_origins.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Set baseline browser security headers on API and health responses."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if settings.env.lower() not in {"development", "dev", "local"}:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+    return response
 
 # Root Endpoint
 @app.get("/", tags=["Health"])

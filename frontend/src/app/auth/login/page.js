@@ -169,22 +169,6 @@ export default function LoginPage() {
           </Link>
         </div>
       </Card>
-
-      {/* Demo Credentials */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
-      >
-        <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
-          Demo Credentials
-        </h4>
-        <p className="text-xs text-blue-700 dark:text-blue-300">
-          Email: demo@example.com<br />
-          Password: demo123
-        </p>
-      </motion.div>
     </motion.div>
   )
 }

@@ -37,6 +37,7 @@ def _make_fake_competitor(competitor_id: str = COMPETITOR_ID) -> MagicMock:
     c = MagicMock()
     c.id = competitor_id
     c.website = "https://acmecorp.example.com"
+    c.user_id = "user-test-001"
     return c
 
 
@@ -70,11 +71,13 @@ class TestSnapshotService:
         competitor_repo: AsyncMock,
         firecrawl: AsyncMock,
     ) -> SnapshotService:
-        return SnapshotService(
+        service = SnapshotService(
             snapshot_repository=snapshot_repo,
             competitor_repository=competitor_repo,
             firecrawl_client=firecrawl,
         )
+        service._validate_public_target = AsyncMock()
+        return service
 
     @pytest.fixture
     def mock_firecrawl(self) -> AsyncMock:
@@ -148,23 +151,19 @@ class TestSnapshotService:
         with pytest.raises(ValueError, match="Competitor not found"):
             await service.take_snapshot("nonexistent-competitor")
 
-    async def test_take_snapshot_handles_crawl_failure_gracefully(
+    async def test_take_snapshot_does_not_store_snapshot_when_all_crawls_fail(
         self,
         mock_snapshot_repo: AsyncMock,
         mock_competitor_repo: AsyncMock,
     ) -> None:
-        """SnapshotService still creates a snapshot with empty content if crawl fails."""
+        """SnapshotService does not record an empty snapshot when both crawls fail."""
         failing_firecrawl = AsyncMock()
         failing_firecrawl.scrape.side_effect = Exception("Connection timeout")
 
         service = self._make_service(mock_snapshot_repo, mock_competitor_repo, failing_firecrawl)
-        snapshot, is_new = await service.take_snapshot(COMPETITOR_ID)
-
-        # Should still create a snapshot, but with empty content
-        assert is_new is True
-        assert snapshot.homepage_content is None
-        assert snapshot.pricing_content is None
-        mock_snapshot_repo.create.assert_awaited_once()
+        with pytest.raises(RuntimeError, match="All competitor page crawls failed"):
+            await service.take_snapshot(COMPETITOR_ID)
+        mock_snapshot_repo.create.assert_not_awaited()
 
     async def test_get_snapshot_returns_schema_when_found(
         self,
@@ -177,7 +176,7 @@ class TestSnapshotService:
         mock_snapshot_repo.get_by_id.return_value = existing
 
         service = self._make_service(mock_snapshot_repo, mock_competitor_repo, mock_firecrawl)
-        result = await service.get_snapshot("snap-001")
+        result = await service.get_snapshot("snap-001", user_id="user-test-001")
 
         assert result.id == "snap-001"
         assert result.competitor_id == COMPETITOR_ID
@@ -194,7 +193,7 @@ class TestSnapshotService:
         service = self._make_service(mock_snapshot_repo, mock_competitor_repo, mock_firecrawl)
 
         with pytest.raises(ValueError, match="Snapshot not found"):
-            await service.get_snapshot("missing-id")
+            await service.get_snapshot("missing-id", user_id="user-test-001")
 
     async def test_content_hash_is_sha256_of_combined_content(
         self,

@@ -60,7 +60,10 @@ export default function AnalyticsPage() {
 
   // Impact level breakdown
   const impactCounts = changes.reduce((acc, ch) => {
-    const imp = ch.impact_level || 'Medium'
+    const score = Number(ch.impact_score)
+    const imp = Number.isFinite(score)
+      ? score >= 0.7 ? 'High' : score >= 0.4 ? 'Medium' : 'Low'
+      : 'Unknown'
     acc[imp] = (acc[imp] || 0) + 1
     return acc
   }, {})

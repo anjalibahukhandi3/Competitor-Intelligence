@@ -7,20 +7,9 @@ from passlib.context import CryptContext
 
 from src.config import settings
 
-# Fix passlib compatibility with bcrypt 4.x
+# bcrypt 4.x removed ``__about__``; Passlib 1.7 still reads it during backend setup.
 if not hasattr(bcrypt, "__about__"):
     bcrypt.__about__ = type("about", (), {"__version__": getattr(bcrypt, "__version__", "4.1.2")})()
-
-_orig_hashpw = bcrypt.hashpw
-
-
-def _safe_hashpw(password: bytes, salt: bytes) -> bytes:
-    if isinstance(password, bytes) and len(password) > 72:
-        password = password[:72]
-    return _orig_hashpw(password, salt)
-
-
-bcrypt.hashpw = _safe_hashpw
 
 # Passlib Crypt Context configured for bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,15 +17,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     """Hashes a plain-text password using bcrypt."""
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 UTF-8 bytes")
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifies a plain-text password against a hashed password."""
+    if len(plain_password.encode("utf-8")) > 72:
+        return False
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, email: str | None = None) -> str:
     """Generates a signed JWT access token containing subject ('sub') and expiration ('exp') claims."""
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.security.access_token_expire_minutes
@@ -45,6 +38,8 @@ def create_access_token(subject: str) -> str:
         "sub": str(subject),
         "exp": expire,
     }
+    if email:
+        payload["email"] = email
     return jwt.encode(
         payload,
         settings.security.secret_key,

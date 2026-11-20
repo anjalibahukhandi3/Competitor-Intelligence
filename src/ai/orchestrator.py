@@ -21,7 +21,6 @@ The orchestrator is constructed with a ``ReportRepository`` that is
 
 Extensibility
 -------------
-Milestone 7: all agents return mock data.
 Milestone 8: swap agent internals only — this file is unchanged.
 """
 

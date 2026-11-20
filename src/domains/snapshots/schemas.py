@@ -115,7 +115,7 @@ class MonitoringRunRequest(BaseModel):
 
     competitor_ids: list[str] = Field(
         default_factory=list,
-        description="Specific competitor IDs to monitor. Empty list = monitor ALL active competitors.",
+        description="Specific competitor IDs to monitor. Empty list = monitor all active competitors owned by the caller.",
     )
 
 

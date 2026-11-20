@@ -8,7 +8,7 @@ Full lifecycle tested
 4. Trigger an AI report           POST /reports/trigger/{competitor_id}
 5. Get the report by ID           GET  /reports/{report_id}
 6. List reports for competitor    GET  /reports/{competitor_id}/list
-7. Update report status           PATCH /reports/{report_id}/status
+7. Confirm report status cannot be changed through the public API
 
 Guard-rail tests
 ----------------
@@ -150,17 +150,13 @@ async def test_full_report_lifecycle(auth_context):
     assert list_data["total"] >= 1
     assert any(r["id"] == report_id for r in list_data["items"])
 
-    # ── Step 7: Update report status ───────────────────────────────────────
+    # Report status is worker-managed and has no user-facing mutation route.
     patch_resp = await client.patch(
         f"/reports/{report_id}/status",
         json={"status": "processing"},
         headers=headers,
     )
-    assert patch_resp.status_code == 200, f"Status update failed: {patch_resp.text}"
-
-    updated = patch_resp.json()
-    assert updated["id"] == report_id
-    assert updated["status"] == "processing"
+    assert patch_resp.status_code == 404
 
 
 # ---------------------------------------------------------------------------
@@ -215,8 +211,8 @@ async def test_list_reports_invalid_pagination(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_update_status_missing_body(async_client: AsyncClient):
-    """PATCH without a `status` key in the body returns 400."""
+async def test_update_status_route_is_not_exposed(async_client: AsyncClient):
+    """Report lifecycle mutations are not exposed to authenticated users."""
     _, token = await register_and_login(async_client)
     headers = {"Authorization": f"Bearer {token}"}
     fake_id = str(uuid.uuid4())
@@ -226,9 +222,7 @@ async def test_update_status_missing_body(async_client: AsyncClient):
         json={},           # no status field
         headers=headers,
     )
-    # Could be 404 (report not found hit first) or 400 (missing status field)
-    # Either is a correct failure — we just assert it's not 2xx
-    assert resp.status_code in (400, 404)
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

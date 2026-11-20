@@ -41,7 +41,9 @@ export default function RegisterPage() {
     
     try {
       // Remove confirmPassword from the data sent to API
-      const { confirmPassword, ...registerData } = data
+      // The API currently stores email and password only. Keep the additional
+      // onboarding fields local until the user model supports them.
+      const registerData = { email: data.email, password: data.password }
       
       const result = await authRegister(registerData)
       

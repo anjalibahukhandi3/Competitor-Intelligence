@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Globe,
   FileText,
-  Settings,
 } from 'lucide-react'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
@@ -25,7 +24,7 @@ import { competitorsApi, monitoringApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 export default function MonitoringPage() {
-  const [activeTab, setActiveTab] = useState('changes') // 'changes' | 'timeline' | 'frequency'
+  const [activeTab, setActiveTab] = useState('changes') // 'changes' | 'timeline'
 
   // Competitors list
   const [competitors, setCompetitors] = useState([])
@@ -46,9 +45,6 @@ export default function MonitoringPage() {
 
   // Trigger monitoring run loading
   const [runningMonitoring, setRunningMonitoring] = useState(false)
-
-  // Frequency updating
-  const [updatingFreqId, setUpdatingFreqId] = useState(null)
 
   // Fetch competitors list
   const fetchCompetitors = useCallback(async () => {
@@ -111,13 +107,13 @@ export default function MonitoringPage() {
     }
   }, [activeTab, selectedCompetitorId, fetchChanges, fetchTimeline])
 
-  // Trigger manual monitoring run for all competitors
+  // Trigger a run for all competitors owned by the signed-in user
   const handleRunMonitoringAll = async () => {
     setRunningMonitoring(true)
     try {
       const res = await monitoringApi.runMonitoring()
       toast.success(
-        `Monitoring run initiated! Enqueued ${res.data?.enqueued_count || 'all active'} targets.`
+        `Monitoring run initiated! Enqueued ${res.data?.enqueued ?? 0} targets.`
       )
       fetchChanges()
     } catch (err) {
@@ -127,21 +123,6 @@ export default function MonitoringPage() {
       )
     } finally {
       setRunningMonitoring(false)
-    }
-  }
-
-  // Frequency change handler
-  const handleFrequencyChange = async (competitorId, frequency) => {
-    setUpdatingFreqId(competitorId)
-    try {
-      await monitoringApi.updateFrequency(competitorId, frequency)
-      toast.success(`Frequency updated to '${frequency}'`)
-      fetchCompetitors()
-    } catch (err) {
-      console.error('Error updating frequency:', err)
-      toast.error('Failed to update monitoring frequency')
-    } finally {
-      setUpdatingFreqId(null)
     }
   }
 
@@ -233,17 +214,6 @@ export default function MonitoringPage() {
           Competitor Timeline
         </button>
 
-        <button
-          onClick={() => setActiveTab('frequency')}
-          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === 'frequency'
-              ? 'border-primary-600 text-primary-600 dark:border-primary-400 dark:text-primary-400'
-              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          Monitoring Frequencies
-        </button>
       </div>
 
       {/* Tab 1: Detected Changes Feed */}
@@ -459,51 +429,6 @@ export default function MonitoringPage() {
         </div>
       )}
 
-      {/* Tab 3: Monitoring Frequencies */}
-      {activeTab === 'frequency' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {competitors.map((comp) => (
-              <div
-                key={comp.id}
-                className="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 shadow-sm space-y-4"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                      {comp.company_name}
-                    </h4>
-                    <p className="text-xs text-gray-500 truncate max-w-[200px]">
-                      {comp.website}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">
-                    Scan Frequency
-                  </label>
-                  <select
-                    defaultValue="daily"
-                    disabled={updatingFreqId === comp.id}
-                    onChange={(e) =>
-                      handleFrequencyChange(comp.id, e.target.value)
-                    }
-                    className="input-field text-xs bg-gray-50 dark:bg-gray-700/50"
-                  >
-                    <option value="realtime">Realtime (Every hour)</option>
-                    <option value="daily">Daily (Every 24 hours)</option>
-                    <option value="weekly">Weekly (Every 7 days)</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Snapshot View Modal */}
       <SnapshotViewModal

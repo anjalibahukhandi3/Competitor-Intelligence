@@ -3,13 +3,13 @@ class MCPClientManager:
     
     Establishes transport client protocols for Firecrawl and Tavily connections.
     """
-    def __init__(self):
-        pass
+    def __init__(self) -> None:
+        """Construct an adapter placeholder without opening connections."""
         
     async def connect_servers(self) -> None:
-        """Initializes connection to sub-server nodes."""
-        pass
+        """Fail clearly until a supported MCP transport is implemented."""
+        raise NotImplementedError("MCP server connections are not implemented")
         
     async def close_connections(self) -> None:
-        """Gracefully disconnects client channels."""
-        pass
+        """Fail clearly until a supported MCP transport is implemented."""
+        raise NotImplementedError("MCP server connections are not implemented")

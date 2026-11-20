@@ -88,11 +88,17 @@ class TestMonitoringAPI:
     """Integration-style tests for the monitoring API endpoints using TestClient."""
 
     @pytest.fixture
-    def app_client(self):
+    def app_client(self, monkeypatch):
         """Provides a FastAPI TestClient with mocked auth and DB dependencies."""
         from src.main import app
         from src.api.dependencies import get_current_user
         from src.database import get_db
+        from src.redis import redis_manager
+
+        monkeypatch.setattr("src.main.verify_db_connection", AsyncMock())
+        monkeypatch.setattr(redis_manager, "init_pool", lambda _url: None)
+        monkeypatch.setattr(redis_manager, "verify_connection", AsyncMock())
+        monkeypatch.setattr(redis_manager, "close", AsyncMock())
 
         # Mock authenticated user
         fake_user = MagicMock()
@@ -220,7 +226,7 @@ class TestMonitoringAPI:
     def test_get_changes_returns_200_with_events(self, app_client) -> None:
         """GET /changes returns 200 and change event list."""
         with patch(
-            "src.domains.snapshots.repositories.ChangeEventRepository.get_all_recent",
+            "src.domains.snapshots.repositories.ChangeEventRepository.get_recent_for_user",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -233,7 +239,7 @@ class TestMonitoringAPI:
     def test_get_changes_supports_category_filter(self, app_client) -> None:
         """GET /changes?category=Pricing is accepted and returns 200."""
         with patch(
-            "src.domains.snapshots.repositories.ChangeEventRepository.get_all_recent",
+            "src.domains.snapshots.repositories.ChangeEventRepository.get_recent_for_user",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -243,7 +249,7 @@ class TestMonitoringAPI:
     def test_get_changes_supports_impact_filter(self, app_client) -> None:
         """GET /changes?impact=High is accepted and returns 200."""
         with patch(
-            "src.domains.snapshots.repositories.ChangeEventRepository.get_all_recent",
+            "src.domains.snapshots.repositories.ChangeEventRepository.get_recent_for_user",
             new_callable=AsyncMock,
             return_value=[],
         ):

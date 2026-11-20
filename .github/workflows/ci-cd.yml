@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,3 +43,17 @@ jobs:
           file: docker/worker.Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}/worker:${{ github.ref_name }},ghcr.io/${{ github.repository }}/worker:latest
+
+      - name: Require the public API URL for the frontend image
+        if: ${{ vars.PUBLIC_API_BASE_URL == '' }}
+        run: echo "Set the PUBLIC_API_BASE_URL repository variable before publishing a frontend image" && exit 1
+
+      - name: Build and Push Next.js Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.PUBLIC_API_BASE_URL }}
+          tags: ghcr.io/${{ github.repository }}/frontend:${{ github.ref_name }},ghcr.io/${{ github.repository }}/frontend:latest

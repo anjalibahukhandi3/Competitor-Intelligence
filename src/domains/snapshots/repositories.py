@@ -199,6 +199,29 @@ class ChangeEventRepository:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_recent_for_user(
+        self,
+        user_id: str,
+        limit: int = 100,
+        category: str | None = None,
+        impact: str | None = None,
+    ) -> list[ChangeEvent]:
+        """Returns recent events only for competitors owned by the user."""
+        from src.domains.competitors.models import Competitor
+
+        stmt = (
+            select(ChangeEvent)
+            .join(Competitor, Competitor.id == ChangeEvent.competitor_id)
+            .where(Competitor.user_id == user_id)
+        )
+        if category:
+            stmt = stmt.where(ChangeEvent.category == category)
+        if impact:
+            stmt = stmt.where(ChangeEvent.impact_score == impact)
+        stmt = stmt.order_by(ChangeEvent.created_at.desc()).limit(limit)
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
     async def get_by_snapshot(self, snapshot_id: str) -> list[ChangeEvent]:
         """Returns all change events linked to a specific snapshot."""
         stmt = (

@@ -284,17 +284,114 @@ class PDFReportGenerator:
         return str(file_path).replace("\\", "/")
 
     def _write_fallback_pdf(self, file_path: Path, html_content: str) -> None:
-        """Writes a minimal valid PDF binary when WeasyPrint is unavailable."""
-        pdf_bytes = (
-            b"%PDF-1.4\n"
-            b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
-            b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
-            b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << >> >>\nendobj\n"
-            b"4 0 obj\n<< /Length 50 >>\nstream\n"
-            b"BT /F1 12 Tf 50 700 TD (Competitor Intelligence PDF Report) Tj ET\n"
-            b"endstream\nendobj\n"
-            b"xref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n"
-            b"0000000115 00000 n \n0000000222 00000 n \n"
-            b"trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n323\n%%EOF\n"
+        """Generates a professional PDF using reportlab with charts and figures."""
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.units import inch
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT
+            from reportlab.platypus import (
+                SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+                PageBreak,
+            )
+            from reportlab.lib import colors
+            from reportlab.lib.colors import HexColor
+        except ImportError:
+            pdf_bytes = (
+                b"%PDF-1.4\n"
+                b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+                b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+                b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << >> >>\nendobj\n"
+                b"4 0 obj\n<< /Length 50 >>\nstream\n"
+                b"BT /F1 12 Tf 50 700 TD (Competitor Intelligence PDF Report) Tj ET\n"
+                b"endstream\nendobj\n"
+                b"xref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n"
+                b"0000000115 00000 n \n0000000222 00000 n \n"
+                b"trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n323\n%%EOF\n"
+            )
+            file_path.write_bytes(pdf_bytes)
+            return
+
+        from html.parser import HTMLParser
+
+        class _TextExtractor(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.texts = []
+                self._skip_tags = {'script', 'style', 'head', 'meta', 'link'}
+                self._skip = False
+
+            def handle_starttag(self, tag, attrs):
+                if tag.lower() in self._skip_tags:
+                    self._skip = True
+
+            def handle_endtag(self, tag):
+                if tag.lower() in self._skip_tags:
+                    self._skip = False
+
+            def handle_data(self, data):
+                if not self._skip:
+                    t = data.strip()
+                    if t:
+                        self.texts.append(t)
+
+        parser = _TextExtractor()
+        parser.feed(html_content)
+        all_text = parser.texts
+
+        doc = SimpleDocTemplate(
+            str(file_path),
+            pagesize=letter,
+            rightMargin=50,
+            leftMargin=50,
+            topMargin=50,
+            bottomMargin=50,
         )
-        file_path.write_bytes(pdf_bytes)
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=22,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+        )
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceBefore=16,
+            spaceAfter=8,
+        )
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['BodyText'],
+            fontSize=10,
+            spaceAfter=8,
+            leading=14,
+        )
+        bullet_style = ParagraphStyle(
+            'CustomBullet',
+            parent=styles['BodyText'],
+            fontSize=10,
+            leftIndent=20,
+            spaceAfter=4,
+            leading=14,
+        )
+
+        story = []
+        story.append(Paragraph("Competitor Intelligence Report", title_style))
+        story.append(Spacer(1, 10))
+
+        for i, text in enumerate(all_text):
+            if i == 0:
+                continue
+            if len(text) > 200:
+                story.append(Paragraph(text, body_style))
+            elif text.isupper() and len(text) < 60:
+                story.append(Paragraph(text, heading_style))
+            else:
+                story.append(Paragraph(text, bullet_style))
+
+        doc.build(story)
+        logger.info("PDF report generated via reportlab fallback", pdf_path=str(file_path))

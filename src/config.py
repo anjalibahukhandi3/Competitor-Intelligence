@@ -1,4 +1,6 @@
-from pydantic import Field
+from urllib.parse import urlsplit
+
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class BaseAppSettings(BaseSettings):
@@ -22,9 +24,9 @@ class DatabaseSettings(BaseAppSettings):
 
 class SecuritySettings(BaseAppSettings):
     """Security configuration variables (JWT)."""
-    secret_key: str = Field(default="placeholder_secret_key", alias="JWT_SECRET_KEY")
+    secret_key: str = Field(default="development_only_change_this_jwt_secret_key", alias="JWT_SECRET_KEY")
     algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
 
 class RedisSettings(BaseAppSettings):
     """Redis cache and broker configuration variables."""
@@ -55,6 +57,10 @@ class Settings(BaseAppSettings):
     env: str = Field(default="development", alias="ENV")
     debug: bool = Field(default=True, alias="DEBUG")
     port: int = Field(default=8000, alias="PORT")
+    cors_allowed_origins: str = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000",
+        alias="CORS_ALLOWED_ORIGINS",
+    )
     
     # Subgroup configurations instantiated on demand
     db: DatabaseSettings = Field(default_factory=DatabaseSettings)
@@ -62,6 +68,44 @@ class Settings(BaseAppSettings):
     redis: RedisSettings = Field(default_factory=RedisSettings)
     ai: AISettings = Field(default_factory=AISettings)
     external: ExternalApiSettings = Field(default_factory=ExternalApiSettings)
+
+    @model_validator(mode="after")
+    def validate_deployment_secrets(self):
+        """Reject unsafe configuration when running outside development."""
+        if self.env.lower() not in {"development", "dev", "local"}:
+            key = self.security.secret_key
+            lowered_key = key.strip().lower()
+            if (
+                len(key) < 32
+                or any(
+                    marker in lowered_key
+                    for marker in (
+                        "change_this",
+                        "placeholder",
+                        "your_",
+                        "development",
+                        "local_",
+                        "replace",
+                        "example",
+                    )
+                )
+            ):
+                raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 characters outside development")
+            if self.debug:
+                raise ValueError("DEBUG must be false outside development")
+            if self.security.algorithm != "HS256":
+                raise ValueError("JWT_ALGORITHM must be HS256")
+            if self.security.access_token_expire_minutes <= 0:
+                raise ValueError("ACCESS_TOKEN_EXPIRE_MINUTES must be positive")
+
+            origins = [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+            if not origins or "*" in origins:
+                raise ValueError("CORS_ALLOWED_ORIGINS must list explicit production origins")
+            for origin in origins:
+                parsed = urlsplit(origin)
+                if parsed.scheme != "https" or not parsed.netloc or parsed.path not in {"", "/"}:
+                    raise ValueError("Production CORS origins must be HTTPS origins without paths")
+        return self
 
 settings = Settings()
 

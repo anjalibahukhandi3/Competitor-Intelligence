@@ -1,49 +1,36 @@
-# Dockerfile for FastAPI Web Application
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    POETRY_VERSION=1.8.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1 \
-    PYSETUP_PATH="/opt/pysetup" \
-    VENV_PATH="/opt/pysetup/.venv"
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
-# prepend poetry and venv to path
-ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
-
-# Install system dependencies
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
-        curl \
         build-essential \
         libpq-dev \
-        # WeasyPrint dependencies
         libpango-1.0-0 \
         libharfbuzz0b \
         libpangoft2-1.0-0 \
         libjpeg-dev \
         libopenjp2-7-dev \
         libffi-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
-# Set up project workspace
-WORKDIR $PYSETUP_PATH
-COPY pyproject.toml ./
-
-# Install python dependencies (no dev group)
-RUN poetry install --only main
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
 
 WORKDIR /app
-COPY . /app
+COPY pyproject.toml uv.lock README.md ./
+COPY src ./src
+COPY migrations ./migrations
+COPY alembic.ini ./
+RUN uv sync --frozen --no-dev
+
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/storage/reports \
+    && chown -R appuser:appuser /app /opt/venv
+USER appuser
 
 EXPOSE 8000
-
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

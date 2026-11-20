@@ -42,7 +42,6 @@ export const API_ENDPOINTS = {
     RUN: '/monitor/run',
     CHANGES: '/changes',
     SNAPSHOT: (id) => `/snapshots/${id}`,
-    FREQUENCY: (id) => `/monitoring/${id}/frequency`,
     TRIGGER: (id) => `/monitoring/${id}/trigger`,
   },
 }

@@ -84,6 +84,16 @@ class CompetitorRepository:
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
+    async def get_active_by_user(self, user_id: str) -> list[Competitor]:
+        """Returns only active competitors owned by one user."""
+        statement = (
+            select(Competitor)
+            .where(Competitor.user_id == user_id, Competitor.is_active.is_(True))
+            .order_by(Competitor.created_at.desc())
+        )
+        result = await self.db.execute(statement)
+        return list(result.scalars().all())
+
     async def exists_for_user(self, user_id: str, company_name: str) -> bool:
         """Checks if a user already has a competitor registered with the given company name."""
         statement = select(Competitor).where(

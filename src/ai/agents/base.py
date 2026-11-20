@@ -7,8 +7,7 @@ testable and trivially swappable.
 
 Extensibility contract
 -----------------------
-Milestone 7: agents return hardcoded mock data.
-Milestone 8: agents call Firecrawl / Tavily / Claude inside ``run()``.
+Agents call configured Firecrawl, Tavily, and Gemini clients inside ``run()``.
 The orchestrator, Celery task, and tests are untouched in both cases.
 """
 

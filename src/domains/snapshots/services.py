@@ -15,7 +15,11 @@ Architecture rules
 from __future__ import annotations
 
 import hashlib
+import ipaddress
+import socket
 import uuid
+from urllib.parse import urlsplit
+import asyncio
 
 import structlog
 
@@ -91,13 +95,16 @@ class SnapshotService:
             raise ValueError(f"Competitor not found: {competitor_id!r}")
 
         website = competitor.website.rstrip("/")
+        await self._validate_public_target(website)
         log.info("Taking snapshot", website=website)
 
         # Crawl homepage
         homepage_md = ""
+        crawl_succeeded = False
         try:
             result = await self.firecrawl.scrape(website)
             homepage_md = result.get("markdown", "") or ""
+            crawl_succeeded = True
         except Exception as exc:
             log.warning("Homepage crawl failed", error=str(exc))
 
@@ -107,8 +114,12 @@ class SnapshotService:
             pricing_url = f"{website}/pricing"
             result = await self.firecrawl.scrape(pricing_url)
             pricing_md = result.get("markdown", "") or ""
+            crawl_succeeded = True
         except Exception as exc:
             log.warning("Pricing page crawl failed", error=str(exc))
+
+        if not crawl_succeeded:
+            raise RuntimeError("All competitor page crawls failed; no snapshot was recorded")
 
         # Compute content hash
         raw = (homepage_md + pricing_md).encode("utf-8")
@@ -135,10 +146,37 @@ class SnapshotService:
         log.info("Snapshot created", snapshot_id=snapshot.id, hash=content_hash[:12])
         return snapshot, True
 
-    async def get_snapshot(self, snapshot_id: str) -> SnapshotResponse:
-        """Returns a single snapshot by ID. Raises ValueError if not found."""
+    @staticmethod
+    async def _validate_public_target(url: str) -> None:
+        """Rejects non-public destinations before sending a URL to the crawler."""
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("Competitor URL must use http or https and include a hostname")
+        if parsed.username or parsed.password:
+            raise ValueError("Competitor URL must not contain credentials")
+
+        hostname = parsed.hostname.rstrip(".").lower()
+        if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith(".localhost") or hostname.endswith(".local"):
+            raise ValueError("Local network targets cannot be monitored")
+        try:
+            addresses = await asyncio.to_thread(
+                lambda: {
+                    item[4][0]
+                    for item in socket.getaddrinfo(hostname, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
+                }
+            )
+        except OSError as exc:
+            raise ValueError("Competitor hostname could not be resolved") from exc
+        if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+            raise ValueError("Competitor URL must resolve only to public IP addresses")
+
+    async def get_snapshot(self, snapshot_id: str, user_id: str) -> SnapshotResponse:
+        """Returns a snapshot only when its competitor belongs to the user."""
         snapshot = await self.snapshot_repo.get_by_id(snapshot_id)
         if not snapshot:
+            raise ValueError(f"Snapshot not found: {snapshot_id!r}")
+        competitor = await self.competitor_repo.get_by_id(snapshot.competitor_id)
+        if not competitor or competitor.user_id != user_id:
             raise ValueError(f"Snapshot not found: {snapshot_id!r}")
         return SnapshotResponse.model_validate(snapshot)
 
@@ -462,16 +500,20 @@ class MonitoringService:
         self.gemini = gemini_client or GeminiClient()
 
     async def run_monitoring(
-        self, competitor_ids: list[str] | None = None
+        self, user_id: str, competitor_ids: list[str] | None = None
     ) -> MonitoringRunResult:
         """Enqueues monitoring tasks for the given competitor IDs.
 
-        If competitor_ids is None or empty, targets ALL active competitors.
+        If competitor_ids is None or empty, targets all active competitors owned by the user.
         Returns a result summary immediately — actual monitoring runs as background task.
         """
         if not competitor_ids:
-            competitors = await self.competitor_repo.get_all_active()
+            competitors = await self.competitor_repo.get_active_by_user(user_id)
             competitor_ids = [c.id for c in competitors]
+        else:
+            owned = {c.id for c in await self.competitor_repo.get_by_user(user_id)}
+            if any(competitor_id not in owned for competitor_id in competitor_ids):
+                raise ValueError("Competitor not found")
 
         if not competitor_ids:
             return MonitoringRunResult(

@@ -69,10 +69,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Fallback handler for uncaught system exceptions to avoid leaking details and enforce JSON responses."""
-    logger.exception(
+    logger.error(
         "Uncaught system exception occurred",
         path=request.url.path,
-        error=str(exc)
+        error_type=type(exc).__name__,
     )
     return JSONResponse(
         status_code=500,

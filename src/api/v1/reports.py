@@ -102,7 +102,6 @@ async def trigger_report(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
 
-
 # ---------------------------------------------------------------------------
 # GET /reports/{report_id}
 # ---------------------------------------------------------------------------
@@ -226,52 +225,3 @@ async def list_reports(
         if "not found" in msg.lower():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
-
-
-# ---------------------------------------------------------------------------
-# PATCH /reports/{report_id}/status
-# ---------------------------------------------------------------------------
-
-@router.patch(
-    "/{report_id}/status",
-    response_model=ReportResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Update the lifecycle status of a report",
-    description=(
-        "Advances a report through its AI pipeline lifecycle: "
-        "`pending` → `processing` → `completed` | `failed`. "
-        "Intended to be called by internal workers or admins, not end users."
-    ),
-)
-async def update_report_status(
-    report_id: str,
-    status_update: dict,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> ReportResponse:
-    """Updates the status field of an existing report.
-
-    Expects a JSON body: `{"status": "processing"}`.
-
-    - **200 OK** — status updated and full report returned.
-    - **400 Bad Request** — body is missing the `status` field.
-    - **404 Not Found** — report_id does not exist.
-    """
-    new_status = status_update.get("status")
-    if not new_status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Request body must contain a 'status' field.",
-        )
-
-    service = _get_service(db)
-    try:
-        return await service.update_status(
-            report_id=report_id,
-            status=new_status,
-        )
-    except ValueError as exc:
-        msg = str(exc)
-        if "not found" in msg.lower():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)

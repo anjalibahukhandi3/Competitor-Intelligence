@@ -4,8 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Mail, ArrowLeft } from 'lucide-react'
 import { APP_NAME } from '@/utils/constants'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -13,7 +12,6 @@ import InputField from '@/components/forms/InputField'
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
 
   const {
     register,
@@ -27,62 +25,9 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data) => {
     setIsLoading(true)
-    
-    try {
-      // Simulate API call - replace with actual forgot password endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      setIsSubmitted(true)
-      toast.success('Password reset instructions sent!')
-    } catch (error) {
-      toast.error('Failed to send reset instructions')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (isSubmitted) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full"
-      >
-        <Card className="p-8 text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4"
-          >
-            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-          </motion.div>
-          
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Check your email
-          </h1>
-          
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            We&apos;ve sent password reset instructions to your email address.
-          </p>
-          
-          <div className="space-y-3">
-            <Link href="/auth/login">
-              <Button className="w-full">
-                Back to Sign In
-              </Button>
-            </Link>
-            
-            <button
-              onClick={() => setIsSubmitted(false)}
-              className="w-full text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              Didn&apos;t receive an email? Try again
-            </button>
-          </div>
-        </Card>
-      </motion.div>
-    )
+    // Password recovery is not implemented by the backend yet. Do not claim
+    // an email was sent when no recovery request can be made.
+    setIsLoading(false)
   }
 
   return (
@@ -109,7 +54,7 @@ export default function ForgotPasswordPage() {
             transition={{ delay: 0.3 }}
             className="text-gray-600 dark:text-gray-400"
           >
-            Enter your email and we&apos;ll send you a link to reset your password
+            Password recovery is not available yet. Contact your administrator to regain access.
           </motion.p>
         </div>
 
@@ -130,13 +75,8 @@ export default function ForgotPasswordPage() {
             })}
           />
 
-          <Button
-            type="submit"
-            loading={isLoading}
-            className="w-full"
-            size="lg"
-          >
-            Send Reset Instructions
+          <Button type="button" disabled className="w-full" size="lg">
+            Password reset unavailable
           </Button>
         </form>
 

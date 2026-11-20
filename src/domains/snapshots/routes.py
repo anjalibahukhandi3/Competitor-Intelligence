@@ -4,7 +4,7 @@ Routes registered in src/api/router.py under:
   - /competitors/{id}/timeline   → GET (timeline for a competitor)
   - /snapshots/{id}              → GET (single snapshot detail)
   - /monitor/run                 → POST (trigger monitoring for competitors)
-  - /changes                     → GET (recent change events across all competitors)
+  - /changes                     → GET (recent change events owned by the caller)
   - /reports/history             → handled in reports.py via /{competitor_id}/list
 
 All routes follow the thin-router pattern: delegate to services, convert ValueError → HTTPException.
@@ -128,7 +128,7 @@ async def get_snapshot(
         competitor_repository=competitor_repo,
     )
     try:
-        return await service.get_snapshot(snapshot_id)
+        return await service.get_snapshot(snapshot_id, user_id=current_user.id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
@@ -146,7 +146,7 @@ async def get_snapshot(
     summary="Trigger a monitoring run for one or more competitors",
     description=(
         "Enqueues background monitoring tasks for the specified competitors. "
-        "If no `competitor_ids` are provided, ALL active competitors are monitored. "
+        "If no `competitor_ids` are provided, all active competitors owned by the caller are monitored. "
         "Returns immediately (HTTP 202) — monitoring runs asynchronously via Celery."
     ),
 )
@@ -157,7 +157,12 @@ async def trigger_monitoring_run(
 ) -> MonitoringRunResult:
     """Enqueues monitoring jobs for the requested competitors."""
     service = _make_monitoring_service(db)
-    return await service.run_monitoring(competitor_ids=body.competitor_ids or None)
+    try:
+        return await service.run_monitoring(
+            user_id=current_user.id, competitor_ids=body.competitor_ids or None
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -170,9 +175,9 @@ async def trigger_monitoring_run(
     response_model=ChangeEventListResponse,
     status_code=status.HTTP_200_OK,
     tags=["Monitoring"],
-    summary="List recent change events across all competitors",
+    summary="List recent change events for your competitors",
     description=(
-        "Returns the most recent change events detected across all monitored competitors. "
+        "Returns the most recent change events detected for the signed-in user's competitors. "
         "Optionally filter by `category` (Pricing, Features, Homepage, Hiring, "
         "Marketing, Product, Documentation) or `impact` (High, Medium, Low)."
     ),
@@ -184,9 +189,11 @@ async def list_change_events(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChangeEventListResponse:
-    """Returns recent change events across all competitors, with optional filters."""
+    """Returns recent change events owned by the signed-in user, with optional filters."""
     event_repo = ChangeEventRepository(db)
-    events = await event_repo.get_all_recent(limit=limit, category=category, impact=impact)
+    events = await event_repo.get_recent_for_user(
+        user_id=current_user.id, limit=limit, category=category, impact=impact
+    )
     return ChangeEventListResponse(
         items=[ChangeEventResponse.model_validate(e) for e in events],
         total=len(events),
