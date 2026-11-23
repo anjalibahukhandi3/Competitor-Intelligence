@@ -12,6 +12,7 @@
 - Fake MCP search/scrape data and the legacy fake PDF byte response now fail explicitly rather than looking successful.
 - API responses include baseline security headers; auth logs no longer include email addresses or exception messages.
 - Added regression tests for production configuration gates and the unsupported PDF helper.
+- Replaced the root login redirect with a responsive product landing page, with clear registration/login navigation, an explicitly illustrative workspace preview, and reduced-motion styling. Restyled the login screen to match and connected shared input labels to their fields with accessible password-toggle names. Verified the landing page, registration route, and login screen in the browser.
 
 ## Release blockers
 
@@ -25,6 +26,7 @@
 ## Verification evidence
 
 - Frontend ESLint and production Next.js build: passed in the Linux Docker build; `npm ci --omit=dev` reported zero vulnerabilities.
+- Updated frontend production build on this Windows workspace: passed; the live browser rendered the public landing page at a narrow viewport, the Get started link opened registration, and the redesigned login screen loaded with labeled fields and sign-in controls.
 - Focused production/security regression tests: 11 passed.
 - Full backend pytest suite in the Linux test image: **121 passed, 5 warnings**. Three warnings are unawaited coroutine warnings from monitoring test mocks; two are dependency deprecations.
 - Backend, worker, and frontend production images built successfully. Production Compose configuration validated; isolated stack health checks passed for API, PostgreSQL, Redis, and frontend. Database migrations completed; Celery worker responded to `inspect ping`.

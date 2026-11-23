@@ -5,12 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
-import { Mail, Lock, Zap } from 'lucide-react'
+import { ArrowRight, LockKeyhole, Mail, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { APP_NAME } from '@/utils/constants'
 import Button from '@/components/ui/Button'
-import Card from '@/components/ui/Card'
 import InputField from '@/components/forms/InputField'
 
 export default function LoginPage() {
@@ -23,18 +22,15 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      email: '',
-      password: ''
-    }
+    defaultValues: { email: '', password: '' },
   })
 
   const onSubmit = async (data) => {
     setIsLoading(true)
-    
+
     try {
       const result = await login(data)
-      
+
       if (result.success) {
         toast.success('Welcome back!')
         router.push('/dashboard')
@@ -49,126 +45,85 @@ export default function LoginPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="w-full"
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38, ease: 'easeOut' }}
+      className="login-panel w-full"
     >
-      <Card className="p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="w-16 h-16 bg-gradient-to-r from-primary-600 to-secondary-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          >
-            <Zap className="w-8 h-8 text-white" />
-          </motion.div>
-          
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2"
-          >
-            Welcome back
-          </motion.h1>
-          
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-gray-600 dark:text-gray-400"
-          >
-            Sign in to your {APP_NAME} account
-          </motion.p>
-        </div>
+      <div className="mb-7 text-center sm:mb-8">
+        <span className="login-icon mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-[1.2rem]">
+          <Sparkles className="h-6 w-6" strokeWidth={1.8} />
+        </span>
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[.17em] text-violet-700">Your market, in focus</p>
+        <h1 className="text-3xl font-semibold tracking-[-.055em] text-slate-950">Welcome back</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Sign in to continue to your {APP_NAME} workspace.</p>
+      </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <InputField
-            label="Email Address"
-            type="email"
-            icon={Mail}
-            placeholder="Enter your email"
-            error={errors.email?.message}
-            {...register('email', {
-              required: 'Email is required',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address'
-              }
-            })}
-          />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <InputField
+          label="Email address"
+          type="email"
+          icon={Mail}
+          autoComplete="email"
+          placeholder="you@company.com"
+          error={errors.email?.message}
+          {...register('email', {
+            required: 'Email is required',
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: 'Enter a valid email address',
+            },
+          })}
+        />
 
-          <InputField
-            label="Password"
-            type="password"
-            icon={Lock}
-            placeholder="Enter your password"
-            error={errors.password?.message}
-            {...register('password', {
-              required: 'Password is required',
-              minLength: {
-                value: 6,
-                message: 'Password must be at least 6 characters'
-              }
-            })}
-          />
+        <InputField
+          label="Password"
+          type="password"
+          icon={LockKeyhole}
+          autoComplete="current-password"
+          placeholder="Enter your password"
+          error={errors.password?.message}
+          {...register('password', {
+            required: 'Password is required',
+            minLength: {
+              value: 6,
+              message: 'Password must be at least 6 characters',
+            },
+          })}
+        />
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-primary-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 focus:ring-2"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Remember me
-              </span>
-            </label>
-
-            <Link
-              href="/auth/forgot-password"
-              className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          <Button
-            type="submit"
-            loading={isLoading}
-            className="w-full"
-            size="lg"
-          >
-            Sign In
-          </Button>
-        </form>
-
-        {/* Divider */}
-        <div className="my-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                Don&apos;t have an account?
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Sign Up Link */}
-        <div className="text-center">
-          <Link href="/auth/register">
-            <Button variant="outline" className="w-full">
-              Create an Account
-            </Button>
+        <div className="flex justify-end pt-0.5">
+          <Link href="/auth/forgot-password" className="text-sm font-semibold text-violet-700 transition hover:text-violet-900 hover:underline">
+            Forgot password?
           </Link>
         </div>
-      </Card>
-    </motion.div>
+
+        <Button
+          type="submit"
+          loading={isLoading}
+          className="login-submit w-full"
+          size="lg"
+          icon={ArrowRight}
+          iconPosition="right"
+        >
+          Sign in
+        </Button>
+      </form>
+
+      <div className="my-6 flex items-center gap-3 text-[11px] font-medium text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" />
+        NEW TO THE WORKSPACE?
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
+      <Link href="/auth/register" className="login-create-link flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 transition">
+        Create an account
+      </Link>
+
+      <p className="mt-6 text-center text-xs leading-5 text-slate-500">
+        Your workspace brings competitor monitoring and research together.
+      </p>
+    </motion.section>
   )
 }
