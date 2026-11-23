@@ -15,18 +15,19 @@
 
 ## Release blockers
 
+- **Remote crawling boundary:** target validation in this API cannot guarantee the external Firecrawl service will block private-IP redirects or DNS rebinding. Confirm and configure equivalent restrictions at the crawler provider boundary before allowing untrusted users to submit URLs.
 - **Browser token storage:** the access token remains readable by page JavaScript in `localStorage` and a JavaScript-readable cookie. Move to a secure HttpOnly cookie/BFF design with CSRF protection before serving sensitive accounts.
 - **Authentication abuse and recovery:** login/register have no rate limiting, email verification, password reset, or refresh/revocation flow. Implement and test account lifecycle controls.
-- **Remote crawling boundary:** target validation in this API cannot guarantee the external Firecrawl service will block private-IP redirects or DNS rebinding. Confirm and configure equivalent restrictions at the crawler provider boundary before allowing untrusted users to submit URLs.
-- **Authorization and e2e:** tenant-isolation unit coverage exists, but a live two-account API/browser test has not been completed in this environment.
+- **Authorization and e2e:** live API verification covered two-account isolation and competitor CRUD; full browser navigation and provider-backed scan/report flows remain unverified.
 - **Static analysis:** existing `mypy src` reports 55 errors across 19 files; `isort --check-only src tests` reports widespread legacy import-order failures. Black checking also found files requiring formatting. Resolve these technical debts and restore static checks as CI gates.
 - **Deployment operations:** TLS proxy, provider credentials, email sender verification, backup/restore, alerting, and real-host health checks must be configured and verified in the deployment environment.
 
 ## Verification evidence
 
-- Frontend ESLint: passed.
-- Frontend ESLint: passed after the production-image changes.
-- Frontend Next.js build after enabling Next standalone output failed on this Windows/OneDrive workspace with `EPERM` while copying traced files. The standalone mode was removed in favor of a conventional multi-stage `next start` image; the final frontend build still needs a clean rerun.
+- Frontend ESLint and production Next.js build: passed in the Linux Docker build; `npm ci --omit=dev` reported zero vulnerabilities.
 - Focused production/security regression tests: 11 passed.
-- Full backend suite: 113 tests passed in an earlier local run; a fresh full-suite run was not completed in this review because async API tests stalled in this Windows execution environment.
-- Container image builds, production Compose launch, real database migrations, Celery execution, third-party scans/reports, and browser flows remain unverified here.
+- Full backend pytest suite in the Linux test image: **121 passed, 5 warnings**. Three warnings are unawaited coroutine warnings from monitoring test mocks; two are dependency deprecations.
+- Backend, worker, and frontend production images built successfully. Production Compose configuration validated; isolated stack health checks passed for API, PostgreSQL, Redis, and frontend. Database migrations completed; Celery worker responded to `inspect ping`.
+- Production API smoke: health/security headers, unauthenticated access rejection, registration/login, competitor create/list/detail/update/delete, and cross-account access denial passed. Configured CORS origin was accepted and an untrusted origin rejected; production `/docs` returned 404. Frontend returned the application HTML with HTTP 200.
+- Third-party Firecrawl/Tavily scans, provider-backed AI reports, email/PDF delivery, full browser navigation, and responsive visual review were not exercised; real provider credentials and deployment services were not configured for the isolated smoke test.
+- A prior local backend run had 113 passing tests. The fresh Linux run above is the current full-suite result.
